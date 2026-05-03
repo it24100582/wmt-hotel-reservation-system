@@ -39,6 +39,13 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.get("/", (req, res) => {
+  res.json({
+    status: "OK",
+    message: "WMT Backend is running 🚀"
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/bookings', bookingRoutes);
