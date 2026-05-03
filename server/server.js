@@ -10,6 +10,7 @@ import roomRoutes from './routes/rooms.js';
 import bookingRoutes from './routes/bookings.js';
 import uploadRoutes from './routes/upload.js';
 import adminRoutes from './routes/admin.js';
+import promotionRoutes from './routes/promotions.js';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.originalUrl} not found` });
@@ -49,27 +51,22 @@ app.use((err, _req, res, _next) => {
 const startServer = async () => {
   try {
     await connectDB();
-    const basePort = Number(process.env.PORT) || 5001;
+    const port = Number(process.env.PORT) || 5001;
+    const host = process.env.HOST || '0.0.0.0';
 
-    const listenWithFallback = (port) => {
-      const server = app.listen(port, () => {
-        console.log(`WMT API server running on port ${port}`);
-      });
+    const server = app.listen(port, host, () => {
+      console.log(`WMT API server running on http://${host}:${port}`);
+    });
 
-      server.on('error', (error) => {
-        if (error.code === 'EADDRINUSE') {
-          const nextPort = port + 1;
-          console.warn(`Port ${port} is already in use. Retrying on port ${nextPort}...`);
-          listenWithFallback(nextPort);
-          return;
-        }
-
-        console.error('Server listen error:', error.message);
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Stop the other process or change PORT in server/.env.`);
         process.exit(1);
-      });
-    };
+      }
 
-    listenWithFallback(basePort);
+      console.error('Server listen error:', error.message);
+      process.exit(1);
+    });
   } catch (error) {
     console.error('Failed to start server:', error.message);
     process.exit(1);

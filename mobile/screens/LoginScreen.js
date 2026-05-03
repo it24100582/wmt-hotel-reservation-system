@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ const showMessage = (title, message, onDone) => {
 const LoginScreen = () => {
   const navigation = useNavigation();
   const { login } = useAuth();
+  const passwordRef = useRef(null);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -83,10 +84,19 @@ const LoginScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.visualSection}>
-          <Text style={styles.logo}>WMT</Text>
           <Text style={styles.visualTitle}>Welcome Back</Text>
           <Text style={styles.visualSubtitle}>
             Sign in to manage your bookings and enjoy exclusive member rates.
@@ -114,6 +124,9 @@ const LoginScreen = () => {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => passwordRef.current?.focus()}
             />
           </View>
 
@@ -121,12 +134,15 @@ const LoginScreen = () => {
             <Text style={styles.label}>Password</Text>
             <View style={styles.passwordRow}>
               <TextInput
+                ref={passwordRef}
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Enter your password"
                 placeholderTextColor="#666"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
               />
               <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword((prev) => !prev)}>
                 <Text style={styles.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
@@ -161,8 +177,8 @@ const LoginScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f0f1a' },
+  scrollContent: { flexGrow: 1, paddingBottom: 24 },
   visualSection: { backgroundColor: '#1a1a2e', padding: 30, alignItems: 'center' },
-  logo: { color: '#d4af37', fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
   visualTitle: { color: '#fff', fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 10 },
   visualSubtitle: {
     color: 'rgba(255,255,255,0.7)',

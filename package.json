@@ -4,8 +4,10 @@
   "version": "1.0.0",
   "description": "WMT full-stack mobile application (React Native + Express + MongoDB)",
   "scripts": {
-    "server:start": "npm run start --prefix server",
-    "server:dev": "npm run dev --prefix server",
+    "backend:start": "npm run start --prefix backend",
+    "backend:dev": "npm run dev --prefix backend",
+    "server:start": "npm run start --prefix backend",
+    "server:dev": "npm run dev --prefix backend",
     "mobile:start": "npm run start --prefix mobile",
     "mobile:android": "npm run android --prefix mobile",
     "mobile:ios": "npm run ios --prefix mobile",

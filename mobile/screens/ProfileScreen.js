@@ -7,17 +7,24 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { getMyBookings, cancelBooking } from '../services/api';
 import colors from '../theme/colors';
+import { isValidSriLankanPhone, normalizePhoneInput } from '../utils/phoneUtils';
+import { isValidPersonName, normalizeNameInput } from '../utils/nameUtils';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, updateProfile } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editVisible, setEditVisible] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' });
 
   useFocusEffect(
     useCallback(() => {
@@ -53,6 +60,56 @@ const ProfileScreen = () => {
         },
       },
     ]);
+  };
+
+  const openEditModal = () => {
+    setEditForm({
+      name: String(user?.name || ''),
+      email: String(user?.email || ''),
+      phone: String(user?.phone || ''),
+    });
+    setEditVisible(true);
+  };
+
+  const handleSaveProfile = async () => {
+    const normalizedName = normalizeNameInput(editForm.name);
+    const normalizedEmail = String(editForm.email || '').trim().toLowerCase();
+    const normalizedPhone = String(editForm.phone || '').trim();
+
+    if (!normalizedName) {
+      Alert.alert('Validation Error', 'Name is required');
+      return;
+    }
+
+    if (!isValidPersonName(normalizedName)) {
+      Alert.alert('Validation Error', 'Name can only contain letters and spaces');
+      return;
+    }
+
+    if (!normalizedEmail || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      Alert.alert('Validation Error', 'Please enter a valid email');
+      return;
+    }
+
+    if (!isValidSriLankanPhone(normalizedPhone)) {
+      Alert.alert('Validation Error', 'Enter a valid Sri Lankan phone number (e.g. 0771234567 or +94771234567)');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      await updateProfile({
+        name: normalizedName,
+        email: normalizedEmail,
+        phone: normalizedPhone,
+      });
+      setEditVisible(false);
+      Alert.alert('Saved', 'Profile updated successfully');
+    } catch (error) {
+      Alert.alert('Update Failed', error.message || 'Could not update profile');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleCancel = (id) => {
@@ -112,13 +169,18 @@ const ProfileScreen = () => {
           <Text style={styles.avatarText}>{user.name?.charAt(0).toUpperCase()}</Text>
         </View>
 
-        <View>
+        <View style={styles.profileDetails}>
           <Text style={styles.profileName}>{user.name}</Text>
           <Text style={styles.profileEmail}>{user.email}</Text>
+          {user.phone ? <Text style={styles.profilePhone}>{user.phone}</Text> : null}
           <View style={[styles.roleBadge, { backgroundColor: isAdmin ? '#2a3460' : '#1a1f32' }]}>
             <Text style={styles.roleText}>{isAdmin ? 'Admin' : 'Guest'}</Text>
           </View>
         </View>
+
+        <TouchableOpacity style={styles.editBtn} onPress={openEditModal}>
+          <Text style={styles.editBtnText}>Edit</Text>
+        </TouchableOpacity>
       </View>
 
       {isAdmin && (
@@ -155,6 +217,12 @@ const ProfileScreen = () => {
               <Text style={styles.bookingDates}>
                 Stay: {formatDate(item.startDate)} to {formatDate(item.endDate)}
               </Text>
+              {item.promotionCode ? (
+                <Text style={styles.bookingPromo}>Promo: {item.promotionCode}</Text>
+              ) : null}
+              {Number(item.discountAmount || 0) > 0 ? (
+                <Text style={styles.bookingDiscount}>Discount: -Rs. {Number(item.discountAmount).toLocaleString()}</Text>
+              ) : null}
               <Text style={styles.bookingAmount}>Rs. {Number(item.totalAmount).toLocaleString()}</Text>
 
               {item.status === 'Pending' && (
@@ -170,6 +238,67 @@ const ProfileScreen = () => {
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutBtnText}>Sign Out</Text>
       </TouchableOpacity>
+
+      <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Edit Profile</Text>
+
+            <View style={styles.modalField}>
+              <Text style={styles.modalLabel}>Name</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editForm.name}
+                onChangeText={(value) => setEditForm((prev) => ({ ...prev, name: value }))}
+                placeholder="Your name"
+                placeholderTextColor="#666"
+              />
+            </View>
+
+            <View style={styles.modalField}>
+              <Text style={styles.modalLabel}>Email</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editForm.email}
+                onChangeText={(value) => setEditForm((prev) => ({ ...prev, email: value }))}
+                placeholder="you@example.com"
+                placeholderTextColor="#666"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.modalField}>
+              <Text style={styles.modalLabel}>Phone</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editForm.phone}
+                onChangeText={(value) => setEditForm((prev) => ({ ...prev, phone: normalizePhoneInput(value) }))}
+                placeholder="Optional phone number"
+                placeholderTextColor="#666"
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setEditVisible(false)}
+                disabled={savingEdit}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, savingEdit && styles.btnDisabled]}
+                onPress={handleSaveProfile}
+                disabled={savingEdit}
+              >
+                {savingEdit ? <ActivityIndicator color={colors.navy900} /> : <Text style={styles.modalSaveText}>Save</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -211,6 +340,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 15,
   },
+  profileDetails: {
+    flex: 1,
+  },
   avatar: {
     width: 60,
     height: 60,
@@ -233,6 +365,11 @@ const styles = StyleSheet.create({
   profileEmail: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
+    marginBottom: 3,
+  },
+  profilePhone: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
     marginBottom: 6,
   },
   roleBadge: {
@@ -245,6 +382,18 @@ const styles = StyleSheet.create({
     color: colors.gold500,
     fontSize: 12,
     fontWeight: '600',
+  },
+  editBtn: {
+    borderWidth: 1,
+    borderColor: colors.gold500,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  editBtnText: {
+    color: colors.gold500,
+    fontSize: 13,
+    fontWeight: '700',
   },
   adminBtn: {
     margin: 15,
@@ -298,6 +447,16 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.65)',
     fontSize: 13,
     marginBottom: 6,
+  },
+  bookingPromo: {
+    color: '#d4af37',
+    fontSize: 12,
+    marginBottom: 3,
+  },
+  bookingDiscount: {
+    color: '#22c55e',
+    fontSize: 12,
+    marginBottom: 3,
   },
   bookingAmount: {
     color: colors.gold500,
@@ -355,6 +514,76 @@ const styles = StyleSheet.create({
     color: colors.navy900,
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: colors.navy800,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.25)',
+  },
+  modalTitle: {
+    color: colors.gold500,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  modalField: {
+    marginBottom: 10,
+  },
+  modalLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    marginBottom: 5,
+  },
+  modalInput: {
+    backgroundColor: colors.navy900,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    color: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+  },
+  modalCancelText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '600',
+  },
+  modalSaveBtn: {
+    flex: 1,
+    backgroundColor: colors.gold500,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+  },
+  modalSaveText: {
+    color: colors.navy900,
+    fontWeight: '700',
+  },
+  btnDisabled: {
+    opacity: 0.7,
   },
 });
 

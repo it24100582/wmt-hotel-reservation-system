@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { loginUser, registerUser } from '../services/api';
+import { loginUser, registerUser, requestRegisterOtp, verifyRegisterOtp, updateMe } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -40,6 +40,30 @@ export const AuthProvider = ({ children }) => {
     return newUser;
   };
 
+  const requestOtpForRegistration = async (name, email) => {
+    try {
+      const response = await requestRegisterOtp({ name, email, role: 'guest' });
+      return response.data;
+    } catch (error) {
+      if (!error?.message || error.message === 'Network Error') {
+        throw new Error('Cannot connect to server');
+      }
+      throw error;
+    }
+  };
+
+  const verifyOtpForRegistration = async (email, otp) => {
+    try {
+      const response = await verifyRegisterOtp({ email, otp });
+      return response.data;
+    } catch (error) {
+      if (!error?.message || error.message === 'Network Error') {
+        throw new Error('Cannot connect to server');
+      }
+      throw error;
+    }
+  };
+
   const register = async (name, email, password, phone) => {
     try {
       const response = await registerUser({ name, email, password, phone, role: 'guest' });
@@ -57,6 +81,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfile = async ({ name, email, phone }) => {
+    const response = await updateMe({ name, email, phone });
+    const updatedUser = response.data?.user;
+    if (updatedUser) {
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    }
+    return updatedUser;
+  };
+
   const logout = async () => {
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
@@ -67,7 +101,18 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isAdmin, login, register, logout }}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      loading,
+      isAdmin,
+      login,
+      requestOtpForRegistration,
+      verifyOtpForRegistration,
+      register,
+      updateProfile,
+      logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );

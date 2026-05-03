@@ -20,8 +20,10 @@ import {
   updateBookingStatus,
 } from '../services/api';
 import colors from '../theme/colors';
+import { isValidSriLankanPhone, normalizePhoneInput } from '../utils/phoneUtils';
+import { isValidPersonName, normalizeNameInput } from '../utils/nameUtils';
 
-const MENU_ITEMS = ['Dashboard', 'Rooms', 'Bookings', 'Users', 'Payments', 'Reports'];
+const MENU_ITEMS = ['Dashboard', 'Rooms', 'Bookings', 'Users', 'Promotions', 'Payments', 'Reports'];
 const USER_ROLES = ['guest', 'admin'];
 const ROOM_STATUS_ORDER = ['Available', 'Occupied', 'Maintenance'];
 
@@ -199,8 +201,20 @@ const AdminScreen = () => {
   const handleSaveUser = async () => {
     if (!editingUser) return;
 
-    if (!userForm.name.trim()) {
+    const normalizedName = normalizeNameInput(userForm.name);
+    if (!normalizedName) {
       Alert.alert('Validation', 'Name is required');
+      return;
+    }
+
+    if (!isValidPersonName(normalizedName)) {
+      Alert.alert('Validation', 'Name can only contain letters and spaces');
+      return;
+    }
+
+    const normalizedPhone = normalizePhoneInput(userForm.phone);
+    if (!isValidSriLankanPhone(normalizedPhone)) {
+      Alert.alert('Validation', 'Enter a valid Sri Lankan phone number (e.g. 0771234567 or +94771234567)');
       return;
     }
 
@@ -208,8 +222,8 @@ const AdminScreen = () => {
 
     try {
       await updateAdminUser(editingUser._id, {
-        name: userForm.name.trim(),
-        phone: userForm.phone.trim(),
+        name: normalizedName,
+        phone: normalizedPhone,
         role: userForm.role,
       });
 
@@ -470,6 +484,17 @@ const AdminScreen = () => {
     </View>
   );
 
+  const renderPromotionsMenu = () => (
+    <View style={styles.panelCard}>
+      <Text style={styles.panelTitle}>Promotions</Text>
+      <Text style={styles.panelSubTitle}>Create and update coupon codes, discount values, and valid periods.</Text>
+
+      <TouchableOpacity style={styles.primaryActionButton} onPress={() => navigation.navigate('PromotionAdmin')}>
+        <Text style={styles.primaryActionButtonText}>Open Promotion Manager</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderPlaceholderMenu = (title, subtitle) => (
     <View style={styles.panelCard}>
       <Text style={styles.panelTitle}>{title}</Text>
@@ -483,6 +508,7 @@ const AdminScreen = () => {
     if (activeMenu === 'Rooms') return renderRoomsMenu();
     if (activeMenu === 'Bookings') return renderBookingsMenu();
     if (activeMenu === 'Users') return renderUsersMenu();
+    if (activeMenu === 'Promotions') return renderPromotionsMenu();
     if (activeMenu === 'Payments') {
       return renderPlaceholderMenu('Payments', 'Track and reconcile hotel reservation payments.');
     }
@@ -534,7 +560,7 @@ const AdminScreen = () => {
             <TextInput
               style={styles.formInput}
               value={userForm.phone}
-              onChangeText={(value) => handleUserFieldChange('phone', value)}
+              onChangeText={(value) => handleUserFieldChange('phone', normalizePhoneInput(value))}
               placeholder="Phone number"
               placeholderTextColor={colors.slate500}
             />
