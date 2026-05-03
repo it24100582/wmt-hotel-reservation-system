@@ -1,0 +1,30 @@
+flowchart LR
+  Guest[Guest User]
+  Admin[Admin User]
+  Mobile[React Native Mobile App]
+  API[Node.js + Express API Server]
+  Auth[Auth Module]
+  Rooms[Room Module]
+  Bookings[Booking Module]
+  AdminOps[Admin Module]
+  Upload[Upload Module]
+  Mongo[(MongoDB hotel_canvas)]
+  Files[(Uploads Storage)]
+
+  Guest --> Mobile
+  Admin --> Mobile
+  Mobile -->|REST /api/*| API
+
+  API --> Auth
+  API --> Rooms
+  API --> Bookings
+  API --> AdminOps
+  API --> Upload
+
+  Auth --> Mongo
+  Rooms --> Mongo
+  Bookings --> Mongo
+  AdminOps --> Mongo
+  Upload --> Files
+
+  Mongo --> API

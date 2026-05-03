@@ -1,0 +1,14 @@
+{
+  "name": "wmt",
+  "private": true,
+  "version": "1.0.0",
+  "description": "WMT full-stack mobile application (React Native + Express + MongoDB)",
+  "scripts": {
+    "server:start": "npm run start --prefix server",
+    "server:dev": "npm run dev --prefix server",
+    "mobile:start": "npm run start --prefix mobile",
+    "mobile:android": "npm run android --prefix mobile",
+    "mobile:ios": "npm run ios --prefix mobile",
+    "mobile:web": "npm run web --prefix mobile"
+  }
+}

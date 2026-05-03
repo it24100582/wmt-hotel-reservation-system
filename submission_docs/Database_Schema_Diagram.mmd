@@ -1,0 +1,104 @@
+erDiagram
+  USERS {
+    ObjectId _id PK
+    string name
+    string email UNIQUE
+    string password
+    string phone
+    string role
+    date createdAt
+    date updatedAt
+  }
+
+  ROOMS {
+    ObjectId _id PK
+    string roomNumber UNIQUE
+    string type
+    number price
+    string status
+    date createdAt
+    date updatedAt
+  }
+
+  BOOKINGS {
+    ObjectId _id PK
+    ObjectId user FK
+    ObjectId room FK
+    date checkInDate
+    date checkOutDate
+    number totalPrice
+    string status
+    date createdAt
+    date updatedAt
+  }
+
+  PRICINGS {
+    ObjectId _id PK
+    string roomType UNIQUE
+    number pricePerNight
+    object seasonalRates
+    date createdAt
+    date updatedAt
+  }
+
+  ROOMAMENITIES {
+    ObjectId _id PK
+    string name UNIQUE
+    string description
+    date createdAt
+    date updatedAt
+  }
+
+  CONTACTMESSAGES {
+    ObjectId _id PK
+    string name
+    string email
+    string message
+    date createdAt
+    date updatedAt
+  }
+
+  HOUSEKEEPINGTASKS {
+    ObjectId _id PK
+    ObjectId room FK
+    ObjectId assignedTo FK
+    string status
+    string notes
+    date createdAt
+    date updatedAt
+  }
+
+  INVENTORYITEMS {
+    ObjectId _id PK
+    string name UNIQUE
+    number quantity
+    string status
+    date createdAt
+    date updatedAt
+  }
+
+  MAINTENANCEREQUESTS {
+    ObjectId _id PK
+    ObjectId room FK
+    string issue
+    string status
+    date reportedAt
+    date createdAt
+    date updatedAt
+  }
+
+  COUPONS {
+    ObjectId _id PK
+    string code UNIQUE
+    number discountPercentage
+    date expiryDate
+    boolean isActive
+    date createdAt
+    date updatedAt
+  }
+
+  USERS ||--o{ BOOKINGS : places
+  ROOMS ||--o{ BOOKINGS : reserved_for
+  ROOMS ||--o{ HOUSEKEEPINGTASKS : has
+  USERS ||--o{ HOUSEKEEPINGTASKS : assigned
+  ROOMS ||--o{ MAINTENANCEREQUESTS : reported_for
