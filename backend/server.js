@@ -24,6 +24,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.get("/", (req, res) => {
+  res.json({
+    status: "OK",
+    message: "WMT Backend is running 🚀"
+  });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'OK',
